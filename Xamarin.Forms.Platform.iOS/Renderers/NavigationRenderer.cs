@@ -135,7 +135,6 @@ namespace Xamarin.Forms.Platform.iOS
 			UpdateToolBarVisible();
 
 			var navBarFrame = NavigationBar.Frame;
-
 			var toolbar = _secondaryToolbar;
 			// Use 0 if the NavBar is hidden or will be hidden
 			var toolbarY = NavigationBarHidden || !NavigationPage.GetHasNavigationBar(Current) ? 0 : navBarFrame.Bottom;
@@ -143,8 +142,8 @@ namespace Xamarin.Forms.Platform.iOS
 
 			double trueBottom = toolbar.Hidden ? toolbarY : toolbar.Frame.Bottom;
 			var modelSize = _queuedSize.IsZero ? Element.Bounds.Size : _queuedSize;
-			PageController.ContainerArea = 
-				new Rectangle(0, toolbar.Hidden ? 0 : toolbar.Frame.Height, modelSize.Width, modelSize.Height - trueBottom);
+			if (!NavigationPage.GetHasNavigationBar(Current))
+				PageController.ContainerArea = new Rectangle(0, toolbar.Hidden ? 0 : toolbar.Frame.Height, modelSize.Width, modelSize.Height - trueBottom);
 
 			if (!_queuedSize.IsZero)
 			{
@@ -316,6 +315,32 @@ namespace Xamarin.Forms.Platform.iOS
 		{
 			var pack = CreateViewControllerForPage(page);
 			var task = GetAppearedOrDisappearedTask(page);
+
+			var toolbar = _secondaryToolbar;
+			var pageToPush = page as IPageController;
+			if (NavigationPage.GetHasNavigationBar(page))
+			{
+				// The below is done to get a proper difference to take away from the ContainerArea height
+				// in a similar way to ViewDidLayoutSubviews. Transitioning between a page without the
+				// NavBar to one with it can have different values on the Y after navigating back and forth.
+				var navBarFrame = NavigationBar.Frame;
+				nfloat trueBottom = 0;
+				if (navBarFrame.Y != 0)
+				{
+					if (navBarFrame.Y > 0)
+						trueBottom = navBarFrame.Y + navBarFrame.Height;
+					else
+						trueBottom = -(navBarFrame.Y);
+				}
+				else
+				{
+					trueBottom = navBarFrame.Height;
+				}
+				if (!toolbar.Hidden)
+					trueBottom += toolbar.Frame.Height;
+
+				pageToPush.ContainerArea = new Rectangle(0, 0, pack.View.Bounds.Width, pack.View.Bounds.Height - trueBottom);
+			}
 
 			PushViewController(pack, animated);
 
