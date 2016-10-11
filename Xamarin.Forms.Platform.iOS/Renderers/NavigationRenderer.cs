@@ -321,31 +321,31 @@ namespace Xamarin.Forms.Platform.iOS
 			var pack = CreateViewControllerForPage(page);
 			var task = GetAppearedOrDisappearedTask(page);
 
-			var toolbar = _secondaryToolbar;
-			var pageToPush = page as IPageController;
-			if (NavigationPage.GetHasNavigationBar(page))
-			{
-				// The below is done to get a proper difference to take away from the ContainerArea height
-				// in a similar way to ViewDidLayoutSubviews. Transitioning between a page without the
-				// NavBar to one with it can have different values on the Y after navigating back and forth.
-				var navBarFrame = NavigationBar.Frame;
-				nfloat trueBottom = 0;
-				if (navBarFrame.Y != 0)
-				{
-					if (navBarFrame.Y > 0)
-						trueBottom = navBarFrame.Y + navBarFrame.Height;
-					else
-						trueBottom = -(navBarFrame.Y);
-				}
-				else
-				{
-					trueBottom = navBarFrame.Height;
-				}
-				if (!toolbar.Hidden)
-					trueBottom += toolbar.Frame.Height;
+			//var toolbar = _secondaryToolbar;
+			//var pageToPush = page as IPageController;
+			//if (NavigationPage.GetHasNavigationBar(page))
+			//{
+			//	// The below is done to get a proper difference to take away from the ContainerArea height
+			//	// in a similar way to ViewDidLayoutSubviews. Transitioning between a page without the
+			//	// NavBar to one with it can have different values on the Y after navigating back and forth.
+			//	var navBarFrame = NavigationBar.Frame;
+			//	nfloat trueBottom = 0;
+			//	if (navBarFrame.Y != 0)
+			//	{
+			//		if (navBarFrame.Y > 0)
+			//			trueBottom = navBarFrame.Y + navBarFrame.Height;
+			//		else
+			//			trueBottom = -(navBarFrame.Y);
+			//	}
+			//	else
+			//	{
+			//		trueBottom = navBarFrame.Height;
+			//	}
+			//	if (!toolbar.Hidden)
+			//		trueBottom += toolbar.Frame.Height;
 
-				pageToPush.ContainerArea = new Rectangle(0, 0, pack.View.Bounds.Width, pack.View.Bounds.Height - trueBottom);
-			}
+			//	pageToPush.ContainerArea = new Rectangle(0, 0, pack.View.Bounds.Width, pack.View.Bounds.Height - trueBottom);
+			//}
 
 			PushViewController(pack, animated);
 
