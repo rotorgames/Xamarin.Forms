@@ -12,7 +12,7 @@ namespace Xamarin.Forms
 {
 	static class NativeBindingHelpers
 	{
-		public static void SetBinding<TNativeView>(TNativeView target, string targetProperty, BindingBase bindingBase, string updateSourceEventName=null) where TNativeView : class
+		public static void SetBinding<TNativeView>(TNativeView target, string targetProperty, BindingBase bindingBase, string updateSourceEventName = null) where TNativeView : class
 		{
 			var binding = bindingBase as Binding;
 			//This will allow setting bindings from Xaml by reusing the MarkupExtension
@@ -36,13 +36,17 @@ namespace Xamarin.Forms
 			var proxy = BindableObjectProxy<TNativeView>.BindableObjectProxies.GetValue(target, (TNativeView key) => new BindableObjectProxy<TNativeView>(key));
 			BindableProperty bindableProperty = null;
 			propertyChanged = propertyChanged ?? target as INotifyPropertyChanged;
-			bindableProperty = CreateBindableProperty<TNativeView>(targetProperty);
+			var propertyType = target.GetType().GetProperty(targetProperty)?.PropertyType;
+			var defaultValue = target.GetType().GetProperty(targetProperty)?.GetMethod.Invoke(target, new object [] { });
+			bindableProperty = CreateBindableProperty<TNativeView>(targetProperty, propertyType, defaultValue);
 			if (binding != null && binding.Mode != BindingMode.OneWay && propertyChanged != null)
 				propertyChanged.PropertyChanged += (sender, e) => {
 					if (e.PropertyName != targetProperty)
 						return;
-				SetValueFromNative<TNativeView>(sender as TNativeView, targetProperty, bindableProperty);
-			};
+					SetValueFromNative<TNativeView>(sender as TNativeView, targetProperty, bindableProperty);
+					//we need to keep the listener around he same time we have the proxy
+					proxy.NativeINPCListener = propertyChanged;
+				};
 
 			if (binding != null && binding.Mode != BindingMode.OneWay)
 				SetValueFromNative(target, targetProperty, bindableProperty);
@@ -50,17 +54,20 @@ namespace Xamarin.Forms
 			proxy.SetBinding(bindableProperty, bindingBase);
 		}
 
-		static BindableProperty CreateBindableProperty<TNativeView>(string targetProperty) where TNativeView : class
+		static BindableProperty CreateBindableProperty<TNativeView>(string targetProperty, Type propertyType = null, object defaultValue = null) where TNativeView : class
 		{
+			propertyType = propertyType ?? typeof(object);
+			defaultValue = defaultValue ?? (propertyType.GetTypeInfo().IsValueType ? Activator.CreateInstance(propertyType) : null);
 			return BindableProperty.Create(
-					targetProperty,
-					typeof(object),
-					typeof(BindableObjectProxy<TNativeView>),
-					defaultBindingMode: BindingMode.Default,
-					propertyChanged: (bindable, oldValue, newValue) => {
-						TNativeView nativeView;
-						if ((bindable as BindableObjectProxy<TNativeView>).TargetReference.TryGetTarget(out nativeView))
-							SetNativeValue(nativeView, targetProperty, newValue);
+				targetProperty,
+				propertyType,
+				typeof(BindableObjectProxy<TNativeView>),
+				defaultValue: defaultValue,
+				defaultBindingMode: BindingMode.Default,
+				propertyChanged: (bindable, oldValue, newValue) => {
+					TNativeView nativeView;
+					if ((bindable as BindableObjectProxy<TNativeView>).TargetReference.TryGetTarget(out nativeView))
+						SetNativeValue(nativeView, targetProperty, newValue);
 				}
 			);
 		}
@@ -173,6 +180,7 @@ namespace Xamarin.Forms
 			public WeakReference<TNativeView> TargetReference { get; set; }
 			public IList<KeyValuePair<BindableProperty, BindingBase>> BindingsBackpack { get; } = new List<KeyValuePair<BindableProperty, BindingBase>>();
 			public IList<KeyValuePair<BindableProperty, object>> ValuesBackpack { get; } = new List<KeyValuePair<BindableProperty, object>>();
+			public INotifyPropertyChanged NativeINPCListener;
 
 			public BindableObjectProxy(TNativeView target)
 			{

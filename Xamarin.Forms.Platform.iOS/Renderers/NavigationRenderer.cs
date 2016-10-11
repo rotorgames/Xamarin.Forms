@@ -134,6 +134,7 @@ namespace Xamarin.Forms.Platform.iOS
 			base.ViewDidLayoutSubviews();
 			UpdateToolBarVisible();
 
+			var navPage = (NavigationPage)Element;
 			var navBarFrame = NavigationBar.Frame;
 			var toolbar = _secondaryToolbar;
 			// Use 0 if the NavBar is hidden or will be hidden
@@ -141,9 +142,13 @@ namespace Xamarin.Forms.Platform.iOS
 			toolbar.Frame = new RectangleF(0, toolbarY, View.Frame.Width, toolbar.Frame.Height);
 
 			double trueBottom = toolbar.Hidden ? toolbarY : toolbar.Frame.Bottom;
+
 			var modelSize = _queuedSize.IsZero ? Element.Bounds.Size : _queuedSize;
-			if (!NavigationPage.GetHasNavigationBar(Current))
-				PageController.ContainerArea = new Rectangle(0, toolbar.Hidden ? 0 : toolbar.Frame.Height, modelSize.Width, modelSize.Height - trueBottom);
+
+			navPage.NavigationBarHeight = trueBottom;
+
+			PageController.ContainerArea = 
+				new Rectangle(0, toolbar.Hidden ? 0 : toolbar.Frame.Height, modelSize.Width, modelSize.Height);
 
 			if (!_queuedSize.IsZero)
 			{

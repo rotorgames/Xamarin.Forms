@@ -15,6 +15,7 @@ using Android.Content;
 using Android.Content.Res;
 using Android.OS;
 using Android.Util;
+using Android.Views;
 using Xamarin.Forms.Internals;
 using Xamarin.Forms.Platform.Android;
 using Resource = Android.Resource;
@@ -61,7 +62,7 @@ namespace Xamarin.Forms
 			}
 		}
 
-		internal static AndroidTitleBarVisibility TitleBarVisibility { get; private set; }
+		internal static AndroidTitleBarVisibility TitleBarVisibility { get; set; }
 
 		// Provide backwards compat for Forms.Init and AndroidActivity
 		// Why is bundle a param if never used?
@@ -76,9 +77,27 @@ namespace Xamarin.Forms
 			SetupInit(activity, resourceAssembly);
 		}
 
+		/// <summary>
+		/// Sets title bar visibility programmatically. Must be called after Xamarin.Forms.Forms.Init() method
+		/// </summary>
+		/// <param name="visibility">Title bar visibility enum</param>
 		public static void SetTitleBarVisibility(AndroidTitleBarVisibility visibility)
 		{
+			if((Activity)Context == null)
+				throw new NullReferenceException("Must be called after Xamarin.Forms.Forms.Init() method");
+
 			TitleBarVisibility = visibility;
+
+			if (TitleBarVisibility == AndroidTitleBarVisibility.Never)
+			{
+				if (!((Activity)Context).Window.Attributes.Flags.HasFlag(WindowManagerFlags.Fullscreen))
+					((Activity)Context).Window.AddFlags(WindowManagerFlags.Fullscreen);
+			}
+			else
+			{
+				if (((Activity)Context).Window.Attributes.Flags.HasFlag(WindowManagerFlags.Fullscreen))
+					((Activity)Context).Window.ClearFlags(WindowManagerFlags.Fullscreen);
+			}
 		}
 
 		public static event EventHandler<ViewInitializedEventArgs> ViewInitialized;
@@ -262,9 +281,16 @@ namespace Xamarin.Forms
 			double _microSize;
 			double _smallSize;
 
+			static Handler s_handler;
+
 			public void BeginInvokeOnMainThread(Action action)
 			{
-				new Handler(Looper.MainLooper).Post(action);
+				if (s_handler == null || s_handler.Looper != Looper.MainLooper)
+				{
+					s_handler = new Handler(Looper.MainLooper);
+				}
+
+				s_handler.Post(action);
 			}
 
 			public Ticker CreateTicker()

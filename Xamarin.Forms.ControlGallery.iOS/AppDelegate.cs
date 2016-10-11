@@ -151,27 +151,12 @@ namespace Xamarin.Forms.ControlGallery.iOS
 
 			var app = new App();
 
-			var mdp = app.MainPage as MasterDetailPage;
-			var detail = mdp?.Detail as NavigationPage;
-			if (detail != null)
-			{
-				detail.Pushed += (sender, args) =>
-				{
-					var nncgPage = args.Page as NestedNativeControlGalleryPage;
+			// When the native control gallery loads up, it'll let us know so we can add the nested native controls
+			MessagingCenter.Subscribe<NestedNativeControlGalleryPage>(this, NestedNativeControlGalleryPage.ReadyForNativeControlsMessage, AddNativeControls);
+			MessagingCenter.Subscribe<Bugzilla40911>(this, Bugzilla40911.ReadyToSetUp40911Test, SetUp40911Test);
 
-					if (nncgPage != null)
-					{
-						AddNativeControls(nncgPage);
-					}
-
-					var nncgPage1 = args.Page as NativeBindingGalleryPage;
-
-					if (nncgPage1 != null)
-					{
-						AddNativeBindings(nncgPage1);
-					}
-				};
-			}
+			// When the native binding gallery loads up, it'll let us know so we can set up the native bindings
+			MessagingCenter.Subscribe<NativeBindingGalleryPage>(this, NativeBindingGalleryPage.ReadyForNativeBindingsMessage, AddNativeBindings);
 
 			LoadApplication(app);
 			return base.FinishedLaunching(uiApplication, launchOptions);
@@ -312,6 +297,12 @@ namespace Xamarin.Forms.ControlGallery.iOS
 			uilabel.SetBinding("Text", new Binding("NativeLabel"));
 			uilabel.SetBinding(nameof(uilabel.TextColor), new Binding("NativeLabelColor", converter: nativeColorConverter));
 
+			var kvoSlider = new KVOUISlider();
+			kvoSlider.MaxValue = 100;
+			kvoSlider.MinValue = 0;
+			kvoSlider.SetBinding(nameof(kvoSlider.KVOValue), new Binding("Age", BindingMode.TwoWay));
+			sl?.Children.Add(kvoSlider);
+
 			var uiView = new UIView(new RectangleF(0, 0, width, heightCustomLabelView));
 			uiView.Add(uilabel);
 			sl?.Children.Add(uiView);
@@ -320,6 +311,74 @@ namespace Xamarin.Forms.ControlGallery.iOS
 			colorPicker.SetBinding("SelectedColor", new Binding("NativeLabelColor", BindingMode.TwoWay, nativeColorConverter), "ColorPicked");
 			sl?.Children.Add(colorPicker);
 			page.NativeControlsAdded = true;
+		}
+
+		#region Stuff for repro of Bugzilla case 40911
+
+		void SetUp40911Test(Bugzilla40911 page)
+		{
+			var button = new Button { Text = "Start" };
+
+			button.Clicked += (s, e) =>
+			{
+				StartPressed40911();
+			};
+
+			page.Layout.Children.Add(button);
+		}
+
+		public void StartPressed40911()
+		{
+			var loginViewController = new UIViewController { View = { BackgroundColor = UIColor.White } };
+			var button = UIButton.FromType(UIButtonType.RoundedRect);
+			button.SetTitle("Login", UIControlState.Normal);
+			button.Frame = new CGRect(20, 100, 200, 44);
+			loginViewController.View.AddSubview(button);
+
+			button.TouchUpInside += (sender, e) =>
+			{
+				Xamarin.Forms.Application.Current.MainPage = new ContentPage { Content = new Label { Text = "40911 Success" } };
+				loginViewController.DismissViewController(true, null);
+			};
+
+			var window = UIApplication.SharedApplication.KeyWindow;
+			var vc = window.RootViewController;
+			while (vc.PresentedViewController != null)
+			{
+				vc = vc.PresentedViewController;
+			}
+
+			vc.PresentViewController(loginViewController, true, null);
+		}
+
+		#endregion
+	}
+
+	[Register("KVOUISlider")]
+	public class KVOUISlider : UISlider
+	{
+
+		public KVOUISlider()
+		{
+			ValueChanged += (s, e) => KVOValue = Value;
+		}
+
+		float _kVOValue;
+		[Export("kvovalue")]
+		public float KVOValue
+		{
+			get
+			{
+
+				return _kVOValue;
+			}
+			set
+			{
+
+				WillChangeValue(nameof(KVOValue).ToLower());
+				_kVOValue = Value = value;
+				DidChangeValue(nameof(KVOValue).ToLower());
+			}
 		}
 	}
 

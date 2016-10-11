@@ -41,6 +41,9 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 		ToolbarTracker _toolbarTracker;
 		bool _toolbarVisible;
 
+		// The following is based on https://android.googlesource.com/platform/frameworks/support/+/refs/heads/master/v4/java/android/support/v4/app/FragmentManager.java#849
+		const int TransitionDuration = 220;
+
 		public NavigationPageRenderer()
 		{
 			AutoPackage = false;
@@ -71,7 +74,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			}
 		}
 
-		FragmentManager FragmentManager => _fragmentManager ?? (_fragmentManager = ((FormsAppCompatActivity)Context).SupportFragmentManager);
+		FragmentManager FragmentManager	=> _fragmentManager ?? (_fragmentManager = ((FormsAppCompatActivity)Context).SupportFragmentManager);
 
 		IPageController PageController => Element as IPageController;
 
@@ -83,7 +86,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 				if (_toolbarVisible == value)
 					return;
 				_toolbarVisible = value;
-				RequestLayout();
+				Element.ForceLayout();
 			}
 		}
 
@@ -132,14 +135,14 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 
 				if (Element != null)
 				{
-					foreach(Element element in PageController.InternalChildren)
+					foreach (Element element in PageController.InternalChildren)
 					{
 						var child = element as VisualElement;
 						if (child == null)
 						{
 							continue;
 						}
-							
+
 						IVisualElementRenderer renderer = Android.Platform.GetRenderer(child);
 						renderer?.Dispose();
 					}
@@ -170,6 +173,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 				if (_drawerLayout != null && _drawerListener != null)
 				{
 					_drawerLayout.RemoveDrawerListener(_drawerListener);
+					_drawerListener = null;
 				}
 
 				_drawerToggle = null;
@@ -282,31 +286,31 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 
 			bar.Measure(MeasureSpecFactory.MakeMeasureSpec(r - l, MeasureSpecMode.Exactly), MeasureSpecFactory.MakeMeasureSpec(barHeight, MeasureSpecMode.Exactly));
 
-			int internalHeight = b - t - barHeight;
-			int containerHeight = ToolbarVisible ? internalHeight : b - t;
-			containerHeight -= ContainerPadding;
+			int containerHeight = b - t - ContainerPadding;
+
+			Element.NavigationBarHeight = Context.FromPixels(barHeight);
 
 			PageController.ContainerArea = new Rectangle(0, 0, Context.FromPixels(r - l), Context.FromPixels(containerHeight));
-			// Potential for optimization here, the exact conditions by which you don't need to do this are complex
-			// and the cost of doing when it's not needed is moderate to low since the layout will short circuit pretty fast
-			Element.ForceLayout();
 
 			for (var i = 0; i < ChildCount; i++)
 			{
 				AView child = GetChildAt(i);
 				bool isBar = JNIEnv.IsSameObject(child.Handle, bar.Handle);
 
-				if (ToolbarVisible)
+				if (isBar)
 				{
-					if (isBar)
+					if (ToolbarVisible)
 						bar.Layout(0, 0, r - l, barHeight);
 					else
-						child.Layout(0, barHeight + ContainerPadding, r, b);
+						bar.Layout(0, -1000, r, barHeight - 1000);
 				}
 				else
 				{
-					if (isBar)
-						bar.Layout(0, -1000, r, barHeight - 1000);
+					var pageContainer = (PageContainer)child;
+					var hasNavigationBar = (bool)pageContainer.Child.Element.GetValue(NavigationPage.HasNavigationBarProperty);
+
+					if (hasNavigationBar)
+						child.Layout(0, barHeight + ContainerPadding, r, b);
 					else
 						child.Layout(0, ContainerPadding, r, b);
 				}
@@ -320,7 +324,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			else
 				transaction.SetTransition((int)FragmentTransit.FragmentClose);
 		}
-
+		
 		internal int GetNavBarHeight()
 		{
 			if (!ToolbarVisible)
@@ -501,7 +505,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 				ToolbarNavigationClickListener = new ClickListener(Element)
 			};
 
-			if (_drawerListener != null) 
+			if (_drawerListener != null)
 			{
 				_drawerLayout.RemoveDrawerListener(_drawerListener);
 			}
@@ -569,6 +573,12 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			var tcs = new TaskCompletionSource<bool>();
 			Fragment fragment = FragmentContainer.CreateInstance(view);
 			FragmentManager fm = FragmentManager;
+
+#if DEBUG
+			// Enables logging of moveToState operations to logcat
+			FragmentManager.EnableDebugLogging(true);
+#endif
+
 			List<Fragment> fragments = _fragmentStack;
 
 			Current = view;
@@ -599,7 +609,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 						transaction.Remove(currentToRemove);
 						popPage = popToRoot;
 					}
-
+					
 					Fragment toShow = fragments.Last();
 					// Execute pending transactions so that we can be sure the fragment list is accurate.
 					fm.ExecutePendingTransactions();
@@ -621,7 +631,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 
 			// The fragment transitions don't really SUPPORT telling you when they end
 			// There are some hacks you can do, but they actually are worse than just doing this:
-			
+
 			if (animated)
 			{
 				if (!removed)
@@ -633,12 +643,15 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 				else if (_drawerToggle != null && ((INavigationPageController)Element).StackDepth == 2)
 					AnimateArrowOut();
 
-				Device.StartTimer(TimeSpan.FromMilliseconds(200), () =>
+				Device.StartTimer(TimeSpan.FromMilliseconds(TransitionDuration), () =>
 				{
 					tcs.TrySetResult(true);
 					fragment.UserVisibleHint = true;
 					if (removed)
+					{
 						UpdateToolbar();
+					}
+
 					return false;
 				});
 			}
@@ -649,6 +662,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 					tcs.TrySetResult(true);
 					fragment.UserVisibleHint = true;
 					UpdateToolbar();
+
 					return false;
 				});
 			}
@@ -656,7 +670,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			Context.HideKeyboard(this);
 			((Platform)Element.Platform).NavAnimationInProgress = false;
 
-			// 200ms is how long the animations are, and they are "reversible" in the sense that starting another one slightly before it's done is fine
+			// TransitionDuration is how long the built-in animations are, and they are "reversible" in the sense that starting another one slightly before it's done is fine
 
 			return tcs.Task;
 		}

@@ -13,7 +13,10 @@ namespace Xamarin.Forms.Platform.Android
 
 	public abstract class ViewRenderer<TView, TNativeView> : VisualElementRenderer<TView>, AView.IOnFocusChangeListener where TView : View where TNativeView : AView
 	{
-		protected abstract TNativeView CreateNativeControl();
+		protected virtual TNativeView CreateNativeControl()
+		{
+			return default(TNativeView);
+		}
 
 		ViewGroup _container;
 
@@ -76,7 +79,8 @@ namespace Xamarin.Forms.Platform.Android
 			{
 				if (Control != null && ManageNativeControlLifetime)
 				{
-					Control.RemoveFromParent();
+					Control.OnFocusChangeListener = null;
+					RemoveView(Control);
 					Control.Dispose();
 					Control = null;
 				}
