@@ -645,7 +645,6 @@ namespace Xamarin.Forms.Platform.iOS
 
 		internal class UnevenListViewDataSource : ListViewDataSource
 		{
-			IVisualElementRenderer _prototype;
 			bool _disposed;
 			Dictionary<object, Cell> _prototypicalCellByTypeOrDataTemplate = new Dictionary<object, Cell>();
 
@@ -751,12 +750,12 @@ namespace Xamarin.Forms.Platform.iOS
 				if (viewCell != null && viewCell.View != null)
 				{
 					var target = viewCell.View;
-					if (_prototype == null)
-						_prototype = Platform.CreateRenderer(target);
-					else
-						_prototype.SetElement(target);
 
-					Platform.SetRenderer(target, _prototype);
+					var prototype = Platform.CreateRenderer(target);
+
+					prototype.SetElement(target);
+
+					Platform.SetRenderer(target, prototype);
 
 					var req = target.Measure(tableView.Frame.Width, double.PositiveInfinity, MeasureFlags.IncludeMargins);
 
@@ -789,15 +788,6 @@ namespace Xamarin.Forms.Platform.iOS
 					return;
 
 				_disposed = true;
-
-				if (disposing)
-				{
-					if (_prototype != null)
-					{
-						_prototype.Dispose();
-						_prototype = null;
-					}
-				}
 
 				base.Dispose(disposing);
 			}
