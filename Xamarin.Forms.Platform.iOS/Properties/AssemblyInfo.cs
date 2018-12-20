@@ -47,6 +47,7 @@ using UIKit;
 [assembly: ExportRenderer(typeof(Page), typeof(PageRenderer))]
 [assembly: ExportRenderer(typeof(MasterDetailPage), typeof(PhoneMasterDetailRenderer), UIUserInterfaceIdiom.Phone)]
 [assembly: ExportRenderer(typeof(MasterDetailPage), typeof(TabletMasterDetailRenderer), UIUserInterfaceIdiom.Pad)]
+[assembly: ExportRenderer (typeof (CollectionView), typeof (CollectionViewRenderer))]
 [assembly: ExportCell(typeof(Cell), typeof(CellRenderer))]
 [assembly: ExportCell(typeof(ImageCell), typeof(ImageCellRenderer))]
 [assembly: ExportCell(typeof(EntryCell), typeof(EntryCellRenderer))]

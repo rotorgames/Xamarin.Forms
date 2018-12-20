@@ -93,6 +93,9 @@ namespace Xamarin.Forms.Platform
 	[RenderWith (typeof (FrameRenderer))]
 	internal class _FrameRenderer { }
 
+	[RenderWith(typeof(CollectionViewRenderer))]
+	internal class _CollectionViewRenderer { }
+
 #if !WINDOWS_PHONE && !WINDOWS_PHONE_APP
 	[RenderWith (typeof (NavigationMenuRenderer))]
 	internal class _NavigationMenuRenderer { }

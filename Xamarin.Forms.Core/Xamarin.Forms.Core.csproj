@@ -474,6 +474,17 @@
     <Compile Include="PlatformConfiguration\macOSSpecific\NavigationPage.cs" />
     <Compile Include="PlatformConfiguration\macOSSpecific\NavigationTransitionStyle.cs" />
     <Compile Include="PlatformConfiguration\iOSSpecific\LargeTitleDisplayMode.cs" />
+    <Compile Include="Items\CarouselView.cs" />
+    <Compile Include="Items\CollectionView.cs" />
+    <Compile Include="Items\GridItemsLayout.cs" />
+    <Compile Include="Items\IItemsLayout.cs" />
+    <Compile Include="Items\ItemsLayout.cs" />
+    <Compile Include="Items\ItemsLayoutOrientation.cs" />
+    <Compile Include="Items\ItemsView.cs" />
+    <Compile Include="Items\ListItemsLayout.cs" />
+    <Compile Include="Items\ScrollToRequestEventArgs.cs" />
+    <Compile Include="Items\SnapPointsAlignment.cs" />
+    <Compile Include="Items\SnapPointsType.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <ItemGroup>
@@ -490,4 +501,7 @@
   <ItemGroup />
   <ItemGroup />
   <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Items\" />
+  </ItemGroup>
 </Project>

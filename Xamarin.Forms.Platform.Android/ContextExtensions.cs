@@ -15,6 +15,12 @@ namespace Xamarin.Forms.Platform.Android
 		static float s_displayDensity = float.MinValue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Size FromPixels(this Context context, double width, double height)
+		{
+			return new Size(context.FromPixels(width), context.FromPixels(height));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double FromPixels(this Context self, double pixels)
 		{
 			SetupMetrics(self);

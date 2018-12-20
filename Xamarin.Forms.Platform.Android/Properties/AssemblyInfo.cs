@@ -48,6 +48,8 @@ using Xamarin.Forms.Platform.Android;
 [assembly: ExportRenderer (typeof (CarouselPage), typeof (CarouselPageRenderer))]
 [assembly: ExportRenderer (typeof (Page), typeof (PageRenderer))]
 [assembly: ExportRenderer (typeof (MasterDetailPage), typeof (MasterDetailRenderer))]
+
+[assembly: ExportRenderer (typeof (CollectionView), typeof (CollectionViewRenderer))]
 #endif
 
 [assembly: ExportRenderer(typeof(NativeViewWrapper), typeof(NativeViewWrapperRenderer))]
