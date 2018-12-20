@@ -128,6 +128,8 @@ namespace Xamarin.Forms.Platform.iOS
 				throw new ArgumentNullException(nameof(view));
 			}
 
+			view.Parent = _itemsView;
+
 			var renderer = Platform.CreateRenderer(view);
 			Platform.SetRenderer(view, renderer);
 
