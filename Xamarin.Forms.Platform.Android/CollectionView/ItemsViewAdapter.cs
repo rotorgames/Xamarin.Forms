@@ -74,6 +74,8 @@ namespace Xamarin.Forms.Platform.Android
 			if (view == null)
 				throw new ArgumentNullException(nameof(view));
 
+			view.Parent = ItemsView;
+
 			var renderer = Platform.CreateRenderer(view, context);
 			Platform.SetRenderer(view, renderer);
 
