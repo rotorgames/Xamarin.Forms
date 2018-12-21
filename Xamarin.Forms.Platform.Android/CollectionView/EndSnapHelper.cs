@@ -32,8 +32,9 @@ namespace Xamarin.Forms.Platform.Android
 
 			// Find the last visible item; may be only partially on screen
 			var lastVisibleItemPosition = linearLayoutManager.FindLastVisibleItemPosition();
+			var isFirstItem = linearLayoutManager.FindFirstCompletelyVisibleItemPosition() == 0;
 
-			if (lastVisibleItemPosition == RecyclerView.NoPosition)
+			if (lastVisibleItemPosition == RecyclerView.NoPosition || isFirstItem)
 			{
 				return null;
 			}
