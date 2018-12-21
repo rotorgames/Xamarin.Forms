@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using CoreGraphics;
 using Foundation;
 using UIKit;
+using System.Linq;
 
 namespace Xamarin.Forms.Platform.iOS
 {
@@ -66,6 +67,107 @@ namespace Xamarin.Forms.Platform.iOS
 		public bool UniformSize { get; set; }
 
 		public abstract void ConstrainTo(CGSize size);
+
+		[Export("scrollViewDidEndDecelerating:")]
+		public void DecelerationEnded(UIScrollView scrollView)
+		{
+			ScrollToSnapElement();
+		}
+
+		[Export("scrollViewDidEndDragging:willDecelerate:")]
+		public void DraggingEnded(UIScrollView scrollView, bool willDecelerate)
+		{
+			ScrollToSnapElement();
+		}
+
+		void ScrollToSnapElement()
+		{
+			if (_itemsLayout.SnapPointsType != SnapPointsType.Mandatory && _itemsLayout.SnapPointsType != SnapPointsType.MandatorySingle)
+				return;
+
+			var contentOffset = CollectionView.ContentOffset;
+			var contentSize = CollectionView.ContentSize;
+
+			var targetRect = new CGRect(
+				contentOffset.X,
+				contentOffset.Y,
+				CollectionView.Bounds.Size.Width,
+				CollectionView.Bounds.Size.Height);
+
+			var lineStartPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical ? targetRect.GetMinY() : targetRect.GetMinX();
+			var lineEndPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical ? targetRect.GetMaxY() : targetRect.GetMaxX();
+			var lineContentSize = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical ? contentSize.Height : contentSize.Width;
+
+			if (lineStartPosition <= 0 || lineEndPosition >= lineContentSize)
+				return;
+
+			var layoutAttributes = LayoutAttributesForElementsInRect(targetRect);
+
+			if (!layoutAttributes.Any())
+				return;
+
+			UICollectionViewLayoutAttributes targetLayoutAttributes = null;
+			UICollectionViewScrollPosition scrollPosition;
+
+			if (_itemsLayout.SnapPointsAlignment == SnapPointsAlignment.Start)
+			{
+				scrollPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical 
+					? UICollectionViewScrollPosition.Top 
+					: UICollectionViewScrollPosition.Left;
+
+				targetLayoutAttributes = layoutAttributes.First();
+
+				if (!IsHalfVisible(_itemsLayout.Orientation, targetLayoutAttributes.Frame, targetRect) && layoutAttributes.Count() > 1)
+					targetLayoutAttributes = layoutAttributes[1];
+			}
+			else if (_itemsLayout.SnapPointsAlignment == SnapPointsAlignment.End)
+			{
+				scrollPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical
+					? UICollectionViewScrollPosition.Bottom
+					: UICollectionViewScrollPosition.Right;
+
+				targetLayoutAttributes = layoutAttributes.Last();
+
+				if (!IsHalfVisible(_itemsLayout.Orientation, targetLayoutAttributes.Frame, targetRect) && layoutAttributes.Count() > 1)
+					targetLayoutAttributes = layoutAttributes[layoutAttributes.Count() - 2];
+			}
+			else
+			{
+				scrollPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical
+					? UICollectionViewScrollPosition.CenteredVertically
+					: UICollectionViewScrollPosition.CenteredHorizontally;
+
+				var targetCenterPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical ? targetRect.GetMidY() : targetRect.GetMidX();
+				var minDistance = double.PositiveInfinity;
+
+				foreach (var item in layoutAttributes)
+				{
+					var itemCenterPosition = _itemsLayout.Orientation == ItemsLayoutOrientation.Vertical ? item.Center.Y : item.Center.X;
+
+					var itemMinDistance = Math.Abs(targetCenterPosition - itemCenterPosition);
+
+					if (itemMinDistance < minDistance)
+					{
+						targetLayoutAttributes = item;
+						minDistance = itemMinDistance;
+					}
+				}
+			}
+
+			if (targetLayoutAttributes == null)
+				return;
+
+			CollectionView.ScrollToItem(targetLayoutAttributes.IndexPath, scrollPosition, true);
+		}
+
+		bool IsHalfVisible(ItemsLayoutOrientation orientation, CGRect itemRect, CGRect containerRect)
+		{
+			var itemCenterPosition = orientation == ItemsLayoutOrientation.Vertical ? itemRect.GetMidY() : itemRect.GetMidX(); ;
+			var minContainerSize = orientation == ItemsLayoutOrientation.Vertical ? containerRect.GetMinY() : containerRect.GetMinX();
+			var maxContainerSize = orientation == ItemsLayoutOrientation.Vertical ? containerRect.GetMaxY() : containerRect.GetMaxX();
+
+			return itemCenterPosition >= minContainerSize && itemCenterPosition <= maxContainerSize;
+		}
 
 		[Export("collectionView:layout:insetForSectionAtIndex:")]
 		[CompilerGenerated]
