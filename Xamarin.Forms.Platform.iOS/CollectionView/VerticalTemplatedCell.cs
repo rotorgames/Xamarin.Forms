@@ -20,8 +20,9 @@ namespace Xamarin.Forms.Platform.iOS
 			var measure = VisualElementRenderer.Element.Measure(ConstrainedDimension, 
 				double.PositiveInfinity, MeasureFlags.IncludeMargins);
 
-			var height = VisualElementRenderer.Element.Height > 0 
-				? VisualElementRenderer.Element.Height : measure.Request.Height;
+			var height = measure.Request.Height;
+
+			VisualElementRenderer.Element.Layout(new Rectangle(Point.Zero, measure.Request));
 
 			return new CGSize(ConstrainedDimension, height);
 		}

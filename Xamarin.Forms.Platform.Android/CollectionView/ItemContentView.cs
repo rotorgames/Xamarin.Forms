@@ -35,21 +35,16 @@ namespace Xamarin.Forms.Platform.Android
 			var width = Context.FromPixels(pixelWidth);
 			var height = Context.FromPixels(pixelHeight);
 
+			if (width <= 0)
+				width = double.PositiveInfinity;
+
+			if (height <= 0)
+				height = double.PositiveInfinity;
+
 			SizeRequest measure = Content.Element.Measure(width, height, MeasureFlags.IncludeMargins);
 
-			if (pixelWidth == 0)
-			{
-				pixelWidth = (int)Context.ToPixels(Content.Element.Width > 0
-					? Content.Element.Width
-					: measure.Request.Width);
-			}
-
-			if (pixelHeight == 0)
-			{
-				pixelHeight = (int)Context.ToPixels(Content.Element.Height > 0
-					? Content.Element.Height
-					: measure.Request.Height);
-			}
+			pixelWidth = (int)Context.ToPixels(measure.Request.Width);
+			pixelHeight = (int)Context.ToPixels(measure.Request.Height);
 
 			SetMeasuredDimension(pixelWidth, pixelHeight);
 		}
